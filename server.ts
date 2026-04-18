@@ -1,89 +1,68 @@
-import express from "express";
-import { createServer as createViteServer } from "vite";
-import path from "path";
-import { fileURLToPath } from "url";
-import { google } from "googleapis";
-import cookieParser from "cookie-parser";
-import dotenv from "dotenv";
+import express from 'express';
+import cors from 'cors';
+import { Anthropic } from '@anthropic-ai/sdk';
+import dotenv from 'dotenv';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import { createServer as createViteServer } from 'vite';
 
 dotenv.config();
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const PORT = 3000;
-
 async function startServer() {
   const app = express();
+  const PORT = 3000;
+
+  app.use(cors());
   app.use(express.json());
-  app.use(cookieParser());
 
-  const oauth2Client = new google.auth.OAuth2(
-    process.env.YOUTUBE_CLIENT_ID,
-    process.env.YOUTUBE_CLIENT_SECRET,
-    `${process.env.APP_URL}/auth/callback`
-  );
-
-  // API Routes
-  app.get("/api/auth/url", (req, res) => {
-    const scopes = [
-      "https://www.googleapis.com/auth/youtube.readonly",
-      "https://www.googleapis.com/auth/yt-analytics.readonly",
-    ];
-
-    const url = oauth2Client.generateAuthUrl({
-      access_type: "offline",
-      scope: scopes,
-      prompt: "consent",
-    });
-
-    res.json({ url });
+  // Claude API Proxy
+  const anthropic = new Anthropic({
+    apiKey: process.env.ANTHROPIC_API_KEY || '',
   });
 
-  app.get("/auth/callback", async (req, res) => {
-    const { code } = req.query;
+  app.post('/api/chat', async (req, res) => {
     try {
-      const { tokens } = await oauth2Client.getToken(code as string);
-      // In a real app, you would save these tokens to Firestore
-      // For now, we'll send a message to the opener and close
-      res.send(`
-        <html>
-          <body>
-            <script>
-              window.opener.postMessage({ type: "OAUTH_AUTH_SUCCESS", tokens: ${JSON.stringify(tokens)} }, "*");
-              window.close();
-            </script>
-            <p>Authentication successful. Closing window...</p>
-          </body>
-        </html>
-      `);
-    } catch (error) {
-      console.error("Error exchanging code for tokens", error);
-      res.status(500).send("Authentication failed");
+      const { system, messages } = req.body;
+      
+      const response = await anthropic.messages.create({
+        model: 'claude-3-sonnet-20240229', // Using standard sonnet if the specific date isn't exact
+        max_tokens: 1000,
+        system,
+        messages,
+      });
+
+      res.json({ content: response.content[0] });
+    } catch (error: any) {
+      console.error('Claude API Error:', error);
+      res.status(500).json({ error: error.message });
     }
   });
 
-  app.get("/api/health", (req, res) => {
-    res.json({ status: "ok" });
+  // Health check
+  app.get('/api/health', (req, res) => {
+    res.json({ status: 'ok' });
   });
 
-  // Vite middleware
-  if (process.env.NODE_ENV !== "production") {
+  // Vite middleware for development
+  if (process.env.NODE_ENV !== 'production') {
     const vite = await createViteServer({
       server: { middlewareMode: true },
-      appType: "spa",
+      appType: 'spa',
     });
     app.use(vite.middlewares);
   } else {
-    const distPath = path.join(process.cwd(), "dist");
+    const distPath = path.join(process.cwd(), 'dist');
     app.use(express.static(distPath));
-    app.get("*", (req, res) => {
-      res.sendFile(path.join(distPath, "index.html"));
+    app.get('*', (req, res) => {
+      res.sendFile(path.join(distPath, 'index.html'));
     });
   }
 
-  app.listen(PORT, "0.0.0.0", () => {
-    console.log(`Server running at http://localhost:${PORT}`);
+  app.listen(PORT, '0.0.0.0', () => {
+    console.log(`Tube IQ server running on http://localhost:${PORT}`);
   });
 }
 
