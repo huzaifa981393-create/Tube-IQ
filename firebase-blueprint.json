@@ -1,0 +1,88 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "User profile and settings",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "email": { "type": "string" },
+        "displayName": { "type": "string" },
+        "photoURL": { "type": "string" },
+        "connectedChannels": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "subscriptionPlan": { "type": "string", "enum": ["free", "boost", "max"] },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "email"]
+    },
+    "Channel": {
+      "title": "Channel",
+      "description": "Connected YouTube channel data",
+      "type": "object",
+      "properties": {
+        "channelId": { "type": "string" },
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "thumbnails": { "type": "object" },
+        "subscriberCount": { "type": "number" },
+        "viewCount": { "type": "number" },
+        "videoCount": { "type": "number" },
+        "ownerId": { "type": "string" },
+        "accessToken": { "type": "string" },
+        "refreshToken": { "type": "string" },
+        "lastSyncedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["channelId", "ownerId"]
+    },
+    "Keyword": {
+      "title": "Keyword",
+      "description": "Tracked or searched keywords",
+      "type": "object",
+      "properties": {
+        "query": { "type": "string" },
+        "searchVolume": { "type": "number" },
+        "competition": { "type": "number" },
+        "overallScore": { "type": "number" },
+        "trending": { "type": "boolean" },
+        "lastAnalyzedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["query"]
+    },
+    "Idea": {
+      "title": "Daily Idea",
+      "description": "AI generated video ideas",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "reason": { "type": "string" },
+        "prediction": { "type": "string" },
+        "keywords": { "type": "array", "items": { "type": "string" } },
+        "channelId": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["title", "channelId"]
+    }
+  },
+  "firestore": {
+    "/users/{uid}": {
+      "schema": "User",
+      "description": "User profiles"
+    },
+    "/channels/{channelId}": {
+      "schema": "Channel",
+      "description": "Managed YouTube channels"
+    },
+    "/users/{uid}/keywords/{query}": {
+      "schema": "Keyword",
+      "description": "User tracked keywords"
+    },
+    "/channels/{channelId}/ideas/{ideaId}": {
+      "schema": "Idea",
+      "description": "AI generated video ideas per channel"
+    }
+  }
+}

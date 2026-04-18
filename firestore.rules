@@ -1,0 +1,46 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Default deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Helper functions
+    function isSignedIn() { return request.auth != null; }
+    function isOwner(userId) { return isSignedIn() && request.auth.uid == userId; }
+    function isVerified() { return request.auth.token.email_verified == true; }
+    function isValidId(id) { return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$'); }
+    function incoming() { return request.resource.data; }
+    function existing() { return resource.data; }
+
+    // User profiles
+    match /users/{userId} {
+      function isValidUser(data) {
+        return data.keys().hasAll(['uid', 'email']) &&
+               data.uid == request.auth.uid &&
+               data.email is string &&
+               data.email.size() <= 256;
+      }
+      
+      allow get: if isOwner(userId);
+      allow create: if isOwner(userId) && isValidUser(incoming());
+      allow update: if isOwner(userId) && isValidUser(incoming()) && 
+                    incoming().diff(existing()).affectedKeys().hasOnly(['displayName', 'photoURL', 'connectedChannels', 'subscriptionPlan']);
+    }
+
+    // Channels
+    match /channels/{channelId} {
+      function isValidChannel(data) {
+        return data.keys().hasAll(['channelId', 'ownerId']) &&
+               data.ownerId == request.auth.uid &&
+               isValidId(data.channelId);
+      }
+      
+      allow get: if isSignedIn() && isOwner(existing().ownerId);
+      allow list: if isSignedIn() && resource.data.ownerId == request.auth.uid;
+      allow create: if isSignedIn() && isValidChannel(incoming());
+      allow delete: if isSignedIn() && isOwner(existing().ownerId);
+    }
+  }
+}
