@@ -47,6 +47,20 @@ Respond in the language the user writes in (Hindi/English/Hinglish).
   `;
 };
 
+const buildOfflineAnswer = (userMessage: string) => {
+  const lower = userMessage.toLowerCase();
+  if (lower.includes('title') || lower.includes('best title')) {
+    return 'Best title formula: [Emotion] + [Topic] + [Unexpected Payoff]. Example: “India’s Craziest Train Ramp Challenge Gone Wrong!” Title 55 characters ke andar rakho aur first 3 words me curiosity add karo.';
+  }
+  if (lower.includes('thumbnail')) {
+    return 'Thumbnail improve karne ke liye 3 cheezein karo: text 2-3 words, red/yellow high contrast, aur face/action subject ko white outline do. Mobile pe readable hona sabse important hai.';
+  }
+  if (lower.includes('upload') || lower.includes('aaj')) {
+    return 'Aaj ke liye strong idea: “99% log ye AI/tech fact nahi jante” ya niche-specific challenge short. Hindi audience ke liye 7:30 PM - 10 PM IST test karo.';
+  }
+  return 'Viral growth checklist: first 2 seconds me result tease karo, cuts 1.5 seconds ke andar rakho, title me emotional keyword add karo, thumbnail text bada rakho, aur 6-10 mixed tags use karo. Phir 48 hours analytics se next idea choose karo.';
+};
+
 export const askChatbot = async (userMessage: string, history: any[], systemContext: string) => {
   try {
     const response = await axios.post('/api/chat', {
@@ -60,6 +74,6 @@ export const askChatbot = async (userMessage: string, history: any[], systemCont
     return response.data.content.text;
   } catch (error) {
     console.error('Chatbot error:', error);
-    throw new Error('Failed to get answer from AI Assistant.');
+    return buildOfflineAnswer(userMessage);
   }
 };

@@ -11,7 +11,7 @@
   --color-surface2: #27272A;
   --color-border-subtle: #3F3F46;
   --color-primary-blue: #3B82F6;
-  --color-yt-red: #FF0000;
+  --color-yt-red: #FF0033;
   --color-success: #22C55E;
   --color-warning: #F59E0B;
   --color-danger: #EF4444;
@@ -25,7 +25,7 @@
     @apply border-border-subtle;
   }
   body {
-    @apply bg-bg text-text1 antialiased font-outfit selection:bg-primary-blue/30 selection:text-white;
+    @apply bg-bg text-text1 antialiased font-outfit selection:bg-yt-red/30 selection:text-white;
     -webkit-tap-highlight-color: transparent;
   }
   h1, h2, h3, h4 {
@@ -43,6 +43,16 @@
   }
   .stat-value {
     @apply font-mono;
+  }
+
+  .glass-card {
+    background: linear-gradient(135deg, rgba(24, 24, 27, 0.86), rgba(9, 9, 11, 0.72));
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow: 0 24px 70px rgba(0, 0, 0, 0.28);
+    backdrop-filter: blur(18px);
+  }
+  .tubeiq-red-glow {
+    box-shadow: 0 0 38px rgba(255, 0, 51, 0.25);
   }
   .shimmer {
     background: linear-gradient(90deg, #18181B 25%, #27272A 50%, #18181B 75%);

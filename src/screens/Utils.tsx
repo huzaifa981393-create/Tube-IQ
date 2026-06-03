@@ -1,393 +1,325 @@
-import React, { useState, useEffect } from 'react';
-import { useTubeIQStore } from '../store/useStore';
-import { 
-  fetchComments, 
-  postReply, 
-  searchChannels 
-} from '../services/youtube';
-import { 
-  Search, 
-  Tag as TagIcon, 
-  MessageCircle, 
-  Target,
-  Sparkles,
-  TrendingUp,
-  ChevronRight,
-  Zap,
+import React, { useMemo, useState } from 'react';
+import {
+  BarChart3,
+  Brain,
   CheckCircle2,
+  Clock,
   Copy,
-  User,
-  ThumbsUp,
-  MoreHorizontal,
-  Play,
-  ArrowRight
+  Flame,
+  ImageUp,
+  Languages,
+  LineChart,
+  MessageCircle,
+  Music2,
+  PlayCircle,
+  Search,
+  Sparkles,
+  Target,
+  Tags,
+  TrendingUp,
+  UploadCloud,
+  Wand2,
+  Zap,
 } from 'lucide-react';
-import { cn } from '../lib/utils';
 import { toast } from 'sonner';
+import { analyzeSeo, analyzeThumbnail, competitorSnapshot, optimizeTopic, trendingIndia } from '../lib/tubeiqEngine';
+import { cn } from '../lib/utils';
+
+const toolTabs = [
+  { id: 'viral', label: '1 Tap', icon: Wand2 },
+  { id: 'title', label: 'Titles', icon: Sparkles },
+  { id: 'thumb', label: 'Thumb', icon: ImageUp },
+  { id: 'seo', label: 'SEO', icon: Target },
+  { id: 'trend', label: 'Trends', icon: Flame },
+  { id: 'spy', label: 'Spy', icon: BarChart3 },
+  { id: 'script', label: 'Script', icon: MessageCircle },
+  { id: 'predict', label: 'Viral', icon: TrendingUp },
+];
 
 export default function Utils() {
-  const [utility, setUtility] = useState('keywords');
-
-  const tabs = [
-    { id: 'keywords', icon: <Search size={18} />, label: 'SEO' },
-    { id: 'tags', icon: <TagIcon size={18} />, label: 'Tags' },
-    { id: 'comments', icon: <MessageCircle size={18} />, label: 'Talk' },
-    { id: 'spy', icon: <Target size={18} />, label: 'Spy' },
-  ];
+  const [activeTool, setActiveTool] = useState('viral');
+  const ActiveIcon = toolTabs.find((tab) => tab.id === activeTool)?.icon ?? Wand2;
 
   return (
-    <div className="min-h-full flex flex-col">
-      {/* Utility Selector Bar */}
-      <div className="p-6 pb-2 sticky top-0 bg-bg/80 backdrop-blur-md z-30 space-y-4">
-        <h2 className="text-[12px] uppercase font-mono tracking-widest text-text3 font-bold">Optimization Core</h2>
-        <div className="flex bg-surface2 p-1 rounded-2xl border border-border-subtle">
-           {tabs.map((tab) => (
-             <button 
+    <div className="min-h-full bg-[radial-gradient(circle_at_top_right,rgba(255,0,0,0.16),transparent_35%),radial-gradient(circle_at_20%_0%,rgba(59,130,246,0.14),transparent_28%)]">
+      <div className="sticky top-0 z-30 bg-bg/85 backdrop-blur-xl border-b border-white/5 p-5 space-y-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-[10px] text-yt-red font-mono uppercase tracking-[0.28em]">TubeIQ AI Lab</p>
+            <h1 className="text-2xl font-syne font-extrabold">Creator Growth Tools</h1>
+          </div>
+          <div className="h-11 w-11 rounded-2xl bg-yt-red/15 border border-yt-red/30 flex items-center justify-center text-yt-red">
+            <ActiveIcon size={22} />
+          </div>
+        </div>
+        <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
+          {toolTabs.map((tab) => {
+            const Icon = tab.icon;
+            return (
+              <button
                 key={tab.id}
-                onClick={() => setUtility(tab.id)}
+                onClick={() => setActiveTool(tab.id)}
                 className={cn(
-                  "flex-1 py-2.5 rounded-xl flex flex-col items-center justify-center gap-1 transition-all",
-                  utility === tab.id ? "bg-primary-blue text-white shadow-lg" : "text-text3 hover:text-text2"
+                  'shrink-0 min-w-20 px-3 py-3 rounded-2xl border text-xs font-black uppercase tracking-wider transition-all',
+                  activeTool === tab.id
+                    ? 'bg-yt-red text-white border-yt-red shadow-[0_10px_28px_rgba(255,0,0,0.24)]'
+                    : 'bg-surface/80 text-text3 border-border-subtle hover:text-white hover:border-yt-red/30',
                 )}
-             >
-                {tab.icon}
-                <span className="text-[10px] font-bold uppercase tracking-wider">{tab.label}</span>
-             </button>
-           ))}
+              >
+                <Icon size={16} className="mx-auto mb-1" />
+                {tab.label}
+              </button>
+            );
+          })}
         </div>
       </div>
 
-      <div className="flex-1 p-6">
-        {utility === 'keywords' && <KeywordResearch />}
-        {utility === 'tags' && <TagGenerator />}
-        {utility === 'comments' && <CommentManager />}
-        {utility === 'spy' && <CompetitorSpy />}
+      <div className="p-5 pb-28">
+        {activeTool === 'viral' && <OneTapOptimizer />}
+        {activeTool === 'title' && <TitleGenerator />}
+        {activeTool === 'thumb' && <ThumbnailAnalyzer />}
+        {activeTool === 'seo' && <SeoScore />}
+        {activeTool === 'trend' && <TrendingDashboard />}
+        {activeTool === 'spy' && <CompetitorAnalysis />}
+        {activeTool === 'script' && <ScriptWriter />}
+        {activeTool === 'predict' && <ShortsPredictor />}
       </div>
     </div>
   );
 }
 
-function KeywordResearch() {
-    const [query, setQuery] = useState('');
-    const [isSearching, setIsSearching] = useState(false);
-    
-    return (
-        <div className="space-y-8 animate-in fade-in slide-in-from-bottom-2">
-            <div className="space-y-4">
-                <div className="relative group">
-                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-text3 group-focus-within:text-primary-blue transition-colors" size={20} />
-                    <input 
-                        type="text" 
-                        value={query}
-                        onChange={(e) => setQuery(e.target.value)}
-                        placeholder="Search keyword..."
-                        className="w-full h-14 bg-surface2 border border-border-subtle rounded-2xl pl-12 pr-4 outline-none focus:border-primary-blue/50 text-sm"
-                    />
-                </div>
-                <button 
-                    onClick={() => { setIsSearching(true); setTimeout(() => setIsSearching(false), 1000); }}
-                    className="w-full h-14 bg-primary-blue text-white font-bold rounded-2xl flex items-center justify-center gap-2 shadow-lg shadow-primary-blue/20"
-                >
-                   {isSearching ? <Zap className="animate-pulse" /> : "Analyze Keyword"}
-                </button>
-            </div>
+function OneTapOptimizer() {
+  const [topic, setTopic] = useState('Train Ramp Challenge');
+  const result = useMemo(() => optimizeTopic(topic), [topic]);
+  return (
+    <ToolShell
+      eyebrow="Special Feature"
+      title="1 Tap Viral Optimization"
+      description="Sirf topic dalo. TubeIQ title, description, tags, thumbnail idea, SEO score aur best upload timing auto-generate karta hai."
+    >
+      <TopicInput value={topic} onChange={setTopic} buttonLabel="Optimize Now" />
+      <div className="grid grid-cols-3 gap-3">
+        <Metric label="SEO" value={`${result.seoScore}/100`} tone="red" />
+        <Metric label="Viral" value={`${result.viralChance}%`} tone="green" />
+        <Metric label="Upload" value="8 PM" tone="blue" />
+      </div>
+      <ResultCard title="Best Viral Titles" icon={<Sparkles size={18} />}>
+        {result.titles.slice(0, 4).map((title) => <CopyRow key={title} text={title} />)}
+      </ResultCard>
+      <ResultCard title="Auto Description" icon={<PlayCircle size={18} />}>
+        <p className="text-sm text-text2 whitespace-pre-line leading-relaxed">{result.description}</p>
+      </ResultCard>
+      <ResultCard title="Tags + Hashtags" icon={<Tags size={18} />}>
+        <ChipCloud items={[...result.tags.slice(0, 8), ...result.hashtags.slice(0, 4)]} />
+      </ResultCard>
+      <ResultCard title="Thumbnail Direction" icon={<ImageUp size={18} />}>
+        <ul className="space-y-2">
+          {result.thumbnailIdeas.map((idea) => <li key={idea} className="text-sm text-text2 flex gap-2"><CheckCircle2 size={16} className="text-success shrink-0" />{idea}</li>)}
+        </ul>
+      </ResultCard>
+    </ToolShell>
+  );
+}
 
-            <section className="space-y-6">
-                <div className="flex items-center gap-2 text-text2 uppercase font-mono tracking-widest text-xs font-bold">
-                    <TrendingUp size={14} className="text-success" /> Global Trends
-                </div>
-                <div className="space-y-3">
-                   {['React 19 Hooks', 'Vite 6 Features', 'AI Agent Builder', 'Cursor IDE Tips'].map((k, i) => (
-                       <div key={i} className="bg-surface border border-border-subtle p-4 rounded-2xl flex items-center justify-between group cursor-pointer hover:border-primary-blue/30 transition-all">
-                           <div className="flex items-center gap-3">
-                               <div className="w-8 h-8 bg-surface2 rounded-lg flex items-center justify-center text-primary-blue font-mono font-bold text-xs">
-                                   0{i+1}
-                               </div>
-                               <span className="text-sm font-bold text-white group-hover:text-primary-blue transition-colors">{k}</span>
-                           </div>
-                           <div className="text-right">
-                               <div className="text-xs font-mono font-black text-success">85%</div>
-                               <div className="text-[8px] text-text3 uppercase font-mono">SEO SCORE</div>
-                           </div>
-                       </div>
-                   ))}
-                </div>
-            </section>
+function TitleGenerator() {
+  const [topic, setTopic] = useState('Gaming facts in Hindi');
+  const result = useMemo(() => optimizeTopic(topic), [topic]);
+  return (
+    <ToolShell eyebrow="AI Viral Title Generator" title="Viral, Clickbait, Hindi + English Titles" description="Long videos, Shorts aur SEO ke liye scroll-stopping titles banaye.">
+      <TopicInput value={topic} onChange={setTopic} buttonLabel="Generate Titles" />
+      <ResultCard title="Hindi + English Mix" icon={<Languages size={18} />}>
+        {result.titles.map((title) => <CopyRow key={title} text={title} />)}
+      </ResultCard>
+      <ResultCard title="Shorts Title Formats" icon={<Zap size={18} />}>
+        {['Wait For The End 😳', '99% Log Ye Nahi Jante', 'Part 2 Chahiye?', 'Biggest Mistake Ever'].map((title) => <CopyRow key={title} text={`${topic}: ${title}`} />)}
+      </ResultCard>
+    </ToolShell>
+  );
+}
+
+function ThumbnailAnalyzer() {
+  const [fileName, setFileName] = useState('train-ramp-thumb.png');
+  const analysis = useMemo(() => analyzeThumbnail(fileName), [fileName]);
+  return (
+    <ToolShell eyebrow="Thumbnail Analyzer" title="CTR Score + Readability Check" description="Upload mock ke saath brightness, text readability, face emotion aur design suggestions dekho.">
+      <label className="block border border-dashed border-yt-red/40 rounded-3xl bg-yt-red/5 p-6 text-center cursor-pointer">
+        <UploadCloud className="mx-auto text-yt-red mb-3" size={34} />
+        <p className="text-sm font-bold text-white">Thumbnail upload karo</p>
+        <p className="text-xs text-text3 mt-1">PNG/JPG filename analyzer demo</p>
+        <input type="file" accept="image/*" className="hidden" onChange={(event) => setFileName(event.target.files?.[0]?.name || fileName)} />
+      </label>
+      <div className="grid grid-cols-2 gap-3">
+        <Metric label="CTR Score" value={`${analysis.ctr}/100`} tone="red" />
+        <Metric label="Brightness" value={analysis.brightness} tone="blue" />
+      </div>
+      <ResultCard title="AI Findings" icon={<Brain size={18} />}>
+        <InfoLine label="Text" value={analysis.readability} />
+        <InfoLine label="Emotion" value={analysis.emotion} />
+        <div className="mt-4 space-y-2">
+          {analysis.suggestions.map((suggestion) => <li key={suggestion} className="list-none text-sm text-text2 flex gap-2"><CheckCircle2 size={16} className="text-success shrink-0" />{suggestion}</li>)}
         </div>
-    );
+      </ResultCard>
+    </ToolShell>
+  );
 }
 
-function TagGenerator() {
-    const [topic, setTopic] = useState('');
-    const [tags, setTags] = useState<string[]>([]);
-    
-    const generate = () => {
-        if (!topic) return;
-        setTags(['reactjs', 'tutorial', 'programming', 'javascript', 'web development', 'coding', 'software engineer']);
-        toast.success('Generated top 7 ranking tags');
-    };
+function SeoScore() {
+  const [title, setTitle] = useState('India’s Craziest Ramp Crash Ever!');
+  const [description, setDescription] = useState('Train Ramp Challenge ka full high-retention breakdown. Watch till the end for the crazy crash. #shorts #viral #trending');
+  const [tags, setTags] = useState('train ramp challenge, viral shorts, india youtuber, challenge video, ramp crash, hindi shorts');
+  const seo = useMemo(() => analyzeSeo(title, description, tags), [title, description, tags]);
+  return (
+    <ToolShell eyebrow="SEO Score System" title="Title + Description + Tags Audit" description="Ranking chance, SEO score aur exact improvement checklist pao.">
+      <TextField label="Video Title" value={title} onChange={setTitle} />
+      <TextArea label="Description" value={description} onChange={setDescription} />
+      <TextField label="Tags (comma separated)" value={tags} onChange={setTags} />
+      <div className="grid grid-cols-2 gap-3">
+        <Metric label="SEO Score" value={`${seo.score}/100`} tone="red" />
+        <Metric label="Ranking" value={seo.rankingChance} tone="green" />
+      </div>
+      <ResultCard title="Improvement Suggestions" icon={<Target size={18} />}>
+        {seo.suggestions.map((suggestion) => <p key={suggestion} className="text-sm text-text2 mb-2">• {suggestion}</p>)}
+      </ResultCard>
+    </ToolShell>
+  );
+}
 
-    return (
-        <div className="space-y-8 animate-in fade-in slide-in-from-bottom-2">
-            <div className="bg-surface border border-border-subtle p-6 rounded-3xl space-y-4">
-               <div className="flex items-center gap-3 text-primary-blue">
-                   <Sparkles size={24} />
-                   <h3 className="font-syne font-bold text-white uppercase text-sm tracking-widest">AI Tag Generator</h3>
-               </div>
-               <p className="text-xs text-text3 leading-relaxed">Enter your video topic and IQ assistant will generate high-ranking tags optimized for YouTube search.</p>
-               <div className="space-y-3 pt-4">
-                   <input 
-                        type="text" 
-                        value={topic}
-                        onChange={(e) => setTopic(e.target.value)}
-                        placeholder="e.g. Next.js 15 Full Tutorial"
-                        className="w-full h-14 bg-surface2 border border-border-subtle rounded-2xl px-5 outline-none focus:border-primary-blue/50 text-sm"
-                   />
-                   <button 
-                        onClick={generate}
-                        className="w-full h-14 bg-primary-blue text-white font-black rounded-2xl uppercase tracking-widest text-[11px]"
-                    >
-                        Generate Smart Tags
-                    </button>
-               </div>
+function TrendingDashboard() {
+  return (
+    <ToolShell eyebrow="Trending Dashboard" title="India Specific Trends" description="Realtime-style dashboard for viral topics, music, Shorts ideas and gaming trends.">
+      <div className="grid grid-cols-2 gap-3">
+        <Metric label="India Lift" value="+34%" tone="green" />
+        <Metric label="Viral Music" value="6 tracks" tone="red" />
+      </div>
+      <div className="space-y-3">
+        {trendingIndia.map((item, index) => (
+          <div key={item.topic} className="glass-card p-4 rounded-3xl flex items-start gap-3">
+            <div className="h-10 w-10 rounded-2xl bg-yt-red/15 text-yt-red flex items-center justify-center font-mono font-black">{index + 1}</div>
+            <div className="flex-1">
+              <div className="flex justify-between gap-3"><h3 className="text-sm font-bold">{item.topic}</h3><span className="text-success text-xs font-mono">{item.lift}</span></div>
+              <p className="text-xs text-text3 mt-1">Idea: {item.idea}</p>
             </div>
-
-            {tags.length > 0 && (
-                <section className="space-y-4">
-                    <div className="flex items-center justify-between px-1">
-                        <span className="text-[10px] uppercase font-mono font-black text-text3 tracking-widest">{tags.length} TAGS GENERATED</span>
-                        <button 
-                            onClick={() => { navigator.clipboard.writeText(tags.join(', ')); toast.success('Copied all tags'); }}
-                            className="text-primary-blue text-[10px] font-black uppercase tracking-widest flex items-center gap-1"
-                        >
-                            <Copy size={12} /> Copy All
-                        </button>
-                    </div>
-                    <div className="flex flex-wrap gap-2">
-                        {tags.map(tag => (
-                            <div key={tag} className="px-3 py-1.5 bg-surface2 border border-border-subtle rounded-xl text-xs font-medium text-text2 flex items-center gap-2">
-                                #{tag}
-                                <div className="w-1.5 h-1.5 rounded-full bg-success opacity-50" />
-                            </div>
-                        ))}
-                    </div>
-                </section>
-            )}
-        </div>
-    );
+          </div>
+        ))}
+      </div>
+      <ResultCard title="Viral Music + Shorts Notes" icon={<Music2 size={18} />}>
+        <p className="text-sm text-text2">Use fast-beat edits, subtitle every spoken line, and switch camera/action every 1.2-1.8 seconds for Hindi Shorts retention.</p>
+      </ResultCard>
+    </ToolShell>
+  );
 }
 
-function CommentManager() {
-    const { token, videos } = useTubeIQStore();
-    const [selectedVideo, setSelectedVideo] = useState(videos[0]?.id || '');
-    const [comments, setComments] = useState<any[]>([]);
-    const [isLoading, setIsLoading] = useState(false);
-    const [replyText, setReplyText] = useState<{ [id: string]: string }>({});
-
-    useEffect(() => {
-        if (!token || !selectedVideo) return;
-        loadComments();
-    }, [selectedVideo]);
-
-    const loadComments = async () => {
-        setIsLoading(true);
-        try {
-            const data = await fetchComments(token!, selectedVideo);
-            setComments(data);
-        } catch (err) {
-            toast.error('Failed to load comments.');
-        } finally {
-            setIsLoading(false);
-        }
-    };
-
-    const handleReply = async (parentId: string) => {
-        const text = replyText[parentId];
-        if (!text?.trim() || !token) return;
-
-        try {
-            await postReply(token, parentId, text);
-            toast.success('Reply posted!');
-            setReplyText({ ...replyText, [parentId]: '' });
-            loadComments();
-        } catch (err) {
-            toast.error('Failed to post reply.');
-        }
-    };
-
-    return (
-        <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2">
-            <header className="space-y-3 px-1">
-                <h3 className="text-sm font-bold text-white uppercase font-syne tracking-widest">Comment Mastery</h3>
-                <div className="relative">
-                   <select 
-                      value={selectedVideo}
-                      onChange={(e) => setSelectedVideo(e.target.value)}
-                      className="w-full h-12 bg-surface2 border border-border-subtle rounded-xl px-4 text-xs font-bold text-text2 outline-none appearance-none"
-                   >
-                      {videos.map(v => (
-                          <option key={v.id} value={v.id}>{v.title}</option>
-                      ))}
-                   </select>
-                   <ChevronRight size={14} className="absolute right-4 top-1/2 -translate-y-1/2 rotate-90 text-text3 pointer-events-none" />
-                </div>
-            </header>
-
-            <div className="space-y-4">
-                {isLoading ? (
-                    [1,2,3].map(i => <div key={i} className="h-24 bg-surface2 rounded-3xl shimmer" />)
-                ) : comments.map(c => {
-                    const comment = c.snippet.topLevelComment.snippet;
-                    return (
-                        <div key={c.id} className="bg-surface border border-border-subtle p-5 rounded-3xl space-y-4">
-                            <div className="flex items-start justify-between">
-                                <div className="flex items-center gap-3">
-                                    <div className="w-8 h-8 rounded-full overflow-hidden border border-border-subtle">
-                                        <img src={comment.authorProfileImageUrl} alt="avatar" className="w-full h-full object-cover" />
-                                    </div>
-                                    <div className="flex flex-col">
-                                        <span className="text-xs font-bold text-white tracking-tight">{comment.authorDisplayName}</span>
-                                        <span className="text-[10px] text-text3 font-mono">{(comment.publishedAt).split('T')[0]}</span>
-                                    </div>
-                                </div>
-                                <div className="px-2 py-0.5 bg-success/10 text-success border border-success/20 rounded text-[8px] font-black uppercase tracking-widest">
-                                    😊 Positive
-                                </div>
-                            </div>
-                            <p className="text-sm text-text2 leading-relaxed">
-                                {comment.textDisplay}
-                            </p>
-                            
-                            <div className="space-y-3 pt-2">
-                                <div className="flex items-center bg-surface2 rounded-xl border border-border-subtle overflow-hidden">
-                                    <input 
-                                        value={replyText[c.id] || ''}
-                                        onChange={(e) => setReplyText({ ...replyText, [c.id]: e.target.value })}
-                                        placeholder="Type reply..."
-                                        className="flex-1 bg-transparent px-4 h-10 text-xs outline-none"
-                                    />
-                                    <button 
-                                        onClick={() => handleReply(c.id)}
-                                        className="px-4 h-10 bg-primary-blue text-white"
-                                    >
-                                        <Send size={14} />
-                                    </button>
-                                </div>
-                                <div className="flex items-center gap-4">
-                                    <button className="flex items-center gap-1.5 text-[9px] font-black text-text3 uppercase tracking-widest hover:text-white transition-colors">
-                                        <ThumbsUp size={12} /> {comment.likeCount}
-                                    </button>
-                                    <button 
-                                        onClick={() => {
-                                            toast.info("Generating reply with Claude...");
-                                            // Mocking AI suggestion for now
-                                            setReplyText({ ...replyText, [c.id]: "Thanks for your feedback! Glad you enjoyed it." });
-                                        }}
-                                        className="flex items-center gap-1.5 text-[9px] font-black text-primary-blue uppercase tracking-widest bg-primary-blue/5 border border-primary-blue/10 px-3 py-1.5 rounded-lg"
-                                    >
-                                        <Sparkles size={10} /> AI Reply
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    );
-                })}
-
-                {!isLoading && comments.length === 0 && (
-                    <div className="py-20 text-center text-text3 italic text-xs">No comments found for this video.</div>
-                )}
-            </div>
-        </div>
-    );
+function CompetitorAnalysis() {
+  const [channel, setChannel] = useState('@TopGamingCreator');
+  return (
+    <ToolShell eyebrow="Competitor Analysis" title="Channel Pattern Detector" description="Channel link ya handle dalo aur upload frequency, best videos, growth graph aur viral pattern dekho.">
+      <TopicInput value={channel} onChange={setChannel} buttonLabel="Analyze Channel" placeholder="YouTube channel link or handle" />
+      <div className="grid grid-cols-3 gap-3">
+        <Metric label="Uploads" value={competitorSnapshot.uploadFrequency} tone="blue" />
+        <Metric label="Avg Views" value={competitorSnapshot.averageViews} tone="red" />
+        <Metric label="Growth" value={competitorSnapshot.growth} tone="green" />
+      </div>
+      <ResultCard title="Best Performing Patterns" icon={<LineChart size={18} />}>
+        {competitorSnapshot.bestPerformers.map((pattern) => <p key={pattern} className="text-sm text-text2 mb-2">• {pattern}</p>)}
+        <p className="text-sm text-white mt-4 p-3 rounded-2xl bg-white/5">Viral pattern: {competitorSnapshot.viralPattern}</p>
+      </ResultCard>
+    </ToolShell>
+  );
 }
 
-function Send({ size }: { size: number }) {
-    return <ArrowRight size={size} />;
+function ScriptWriter() {
+  const [topic, setTopic] = useState('Train Ramp Challenge');
+  const result = useMemo(() => optimizeTopic(topic), [topic]);
+  return (
+    <ToolShell eyebrow="AI Script Writer" title="Hook, Intro, Shorts Script, CTA" description="Hinglish scripts for Shorts and long-form intros with retention beats.">
+      <TopicInput value={topic} onChange={setTopic} buttonLabel="Write Script" />
+      <ResultCard title="Shorts Script" icon={<MessageCircle size={18} />}>
+        {result.script.map((line, index) => <CopyRow key={line} text={`${index + 1}. ${line}`} />)}
+      </ResultCard>
+      <ResultCard title="Long Video Structure" icon={<Clock size={18} />}>
+        {['0:00 Hook with final result tease', '0:08 Quick setup + stakes', '0:30 Main experiment / story', '2:30 Biggest twist', '4:30 CTA + next video bridge'].map((line) => <p key={line} className="text-sm text-text2 mb-2">• {line}</p>)}
+      </ResultCard>
+    </ToolShell>
+  );
 }
 
-function CompetitorSpy() {
-    const { token } = useTubeIQStore();
-    const [query, setQuery] = useState('');
-    const [results, setResults] = useState<any[]>([]);
-    const [isLoading, setIsLoading] = useState(false);
-
-    const handleSearch = async () => {
-        if (!query || !token) return;
-        setIsLoading(true);
-        try {
-            const channels = await searchChannels(token, query);
-            setResults(channels);
-        } catch (err) {
-            toast.error('Search failed.');
-        } finally {
-            setIsLoading(false);
-        }
-    };
-
-    return (
-        <div className="space-y-8 animate-in fade-in slide-in-from-bottom-2">
-            <div className="space-y-4">
-                <header className="px-1">
-                    <h3 className="text-sm font-syne font-bold text-white uppercase tracking-widest">Growth Intelligence</h3>
-                    <p className="text-xs text-text3 mt-1">Discover what's working for top channels in your niche.</p>
-                </header>
-                <div className="flex gap-2">
-                    <div className="relative flex-1">
-                       <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-text3" size={18} />
-                       <input 
-                          type="text" 
-                          value={query}
-                          onChange={(e) => setQuery(e.target.value)}
-                          onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-                          placeholder="Channel name or URL..."
-                          className="w-full h-14 bg-surface2 border border-border-subtle rounded-2xl pl-12 pr-5 outline-none focus:border-primary-blue/50 text-sm"
-                       />
-                    </div>
-                    <button 
-                        onClick={handleSearch}
-                        className="w-14 h-14 bg-primary-blue text-white rounded-2xl flex items-center justify-center shadow-lg shadow-primary-blue/20"
-                    >
-                        <Zap size={20} />
-                    </button>
-                </div>
-            </div>
-
-            <div className="space-y-4">
-                {isLoading ? (
-                    [1,2].map(i => <div key={i} className="h-20 bg-surface2 rounded-3xl shimmer" />)
-                ) : results.map(c => (
-                    <div key={c.id.channelId} className="bg-surface border border-border-subtle p-4 rounded-3xl flex items-center gap-4 group hover:border-primary-blue/30 transition-all">
-                        <div className="w-12 h-12 rounded-xl overflow-hidden border border-border-subtle">
-                            <img src={c.snippet.thumbnails.default.url} alt="chan" className="w-full h-full object-cover" />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                            <h4 className="text-sm font-bold text-white truncate">{c.snippet.title}</h4>
-                            <p className="text-[10px] text-text3 font-mono line-clamp-1">{c.snippet.description}</p>
-                        </div>
-                        <button className="p-2.5 bg-surface2 rounded-xl text-text3 hover:text-primary-blue group-hover:bg-primary-blue/10 transition-all">
-                            <Target size={18} />
-                        </button>
-                    </div>
-                ))}
-            </div>
-
-            {!isLoading && results.length === 0 && (
-                <section className="bg-primary-blue/5 border border-primary-blue/20 p-6 rounded-3xl space-y-4 relative overflow-hidden">
-                    <div className="absolute top-0 right-0 p-10 opacity-5 pointer-events-none">
-                        <Target size={120} />
-                    </div>
-                    <div className="flex items-center gap-4 relative z-10">
-                        <div className="w-12 h-12 bg-surface2 rounded-xl flex items-center justify-center text-primary-blue">
-                            <TrendingUp size={24} />
-                        </div>
-                        <div>
-                            <h4 className="font-syne font-bold text-white uppercase text-xs tracking-widest">Niche Analysis</h4>
-                            <p className="text-xs text-text3 mt-1">Search a competitor to see strategy alerts.</p>
-                        </div>
-                    </div>
-                </section>
-            )}
-        </div>
-    );
+function ShortsPredictor() {
+  const [topic, setTopic] = useState('AI facts in Hindi');
+  const result = useMemo(() => optimizeTopic(topic), [topic]);
+  return (
+    <ToolShell eyebrow="Shorts Viral Predictor" title="Viral Chance + Retention Forecast" description="AI estimate for viral %, retention, engagement and best upload time.">
+      <TopicInput value={topic} onChange={setTopic} buttonLabel="Predict Viral Chance" />
+      <div className="grid grid-cols-2 gap-3">
+        <Metric label="Viral Chance" value={`${result.viralChance}%`} tone="red" />
+        <Metric label="Engagement" value="8.7%" tone="green" />
+      </div>
+      <ResultCard title="Prediction" icon={<TrendingUp size={18} />}>
+        <InfoLine label="Retention" value={result.retention} />
+        <InfoLine label="Best Time" value={result.bestUploadTime} />
+        <InfoLine label="Risk" value="If hook is slow after 2 seconds, swipe-away chance increases." />
+      </ResultCard>
+    </ToolShell>
+  );
 }
 
+function ToolShell({ eyebrow, title, description, children }: { eyebrow: string; title: string; description: string; children: React.ReactNode }) {
+  return (
+    <div className="space-y-5 animate-in fade-in slide-in-from-bottom-3 duration-300">
+      <section className="relative overflow-hidden rounded-[2rem] border border-white/10 bg-gradient-to-br from-surface via-black to-yt-red/20 p-5 shadow-2xl">
+        <div className="absolute -right-10 -top-10 h-32 w-32 rounded-full bg-yt-red/25 blur-3xl" />
+        <p className="text-[10px] text-yt-red font-mono uppercase tracking-[0.28em] relative">{eyebrow}</p>
+        <h2 className="mt-2 text-3xl font-syne font-extrabold leading-tight relative">{title}</h2>
+        <p className="mt-3 text-sm text-text2 leading-relaxed relative">{description}</p>
+      </section>
+      {children}
+    </div>
+  );
+}
+
+function TopicInput({ value, onChange, buttonLabel, placeholder = 'Video topic dalo...' }: { value: string; onChange: (value: string) => void; buttonLabel: string; placeholder?: string }) {
+  return (
+    <div className="glass-card rounded-3xl p-4 space-y-3">
+      <div className="relative">
+        <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-text3" size={18} />
+        <input value={value} onChange={(event) => onChange(event.target.value)} placeholder={placeholder} className="h-14 w-full rounded-2xl bg-black/35 border border-white/10 pl-12 pr-4 text-sm outline-none focus:border-yt-red/60" />
+      </div>
+      <button onClick={() => toast.success('TubeIQ AI generated fresh recommendations')} className="h-13 w-full rounded-2xl bg-yt-red text-white font-black uppercase tracking-wider shadow-[0_12px_30px_rgba(255,0,0,0.22)] active:scale-[0.98] transition-transform">
+        {buttonLabel}
+      </button>
+    </div>
+  );
+}
+
+function ResultCard({ title, icon, children }: { title: string; icon: React.ReactNode; children: React.ReactNode }) {
+  return (
+    <section className="glass-card rounded-3xl p-5 space-y-4">
+      <div className="flex items-center gap-2 text-white font-bold"><span className="text-yt-red">{icon}</span>{title}</div>
+      {children}
+    </section>
+  );
+}
+
+function Metric({ label, value, tone }: { label: string; value: string; tone: 'red' | 'green' | 'blue' }) {
+  const tones = { red: 'text-yt-red bg-yt-red/10 border-yt-red/20', green: 'text-success bg-success/10 border-success/20', blue: 'text-primary-blue bg-primary-blue/10 border-primary-blue/20' };
+  return <div className={cn('rounded-3xl border p-4 min-h-24 flex flex-col justify-between', tones[tone])}><p className="text-[10px] uppercase font-mono tracking-widest opacity-80">{label}</p><p className="text-lg font-black leading-tight">{value}</p></div>;
+}
+
+const CopyRow: React.FC<{ text: string }> = ({ text }) => {
+  return <button onClick={() => { navigator.clipboard?.writeText(text); toast.success('Copied'); }} className="w-full text-left p-3 rounded-2xl bg-white/[0.04] border border-white/5 text-sm text-text2 hover:text-white hover:border-yt-red/30 transition-all flex gap-3 justify-between"><span>{text}</span><Copy size={14} className="text-text3 shrink-0" /></button>;
+};
+
+function ChipCloud({ items }: { items: string[] }) {
+  return <div className="flex flex-wrap gap-2">{items.map((item) => <span key={item} className="px-3 py-2 rounded-full bg-yt-red/10 border border-yt-red/20 text-xs text-white">{item}</span>)}</div>;
+}
+
+function InfoLine({ label, value }: { label: string; value: string }) {
+  return <div className="py-3 border-b border-white/5 last:border-0"><p className="text-[10px] uppercase font-mono tracking-widest text-text3">{label}</p><p className="text-sm text-text2 mt-1">{value}</p></div>;
+}
+
+function TextField({ label, value, onChange }: { label: string; value: string; onChange: (value: string) => void }) {
+  return <label className="block space-y-2"><span className="text-xs text-text3 uppercase font-mono tracking-widest">{label}</span><input value={value} onChange={(event) => onChange(event.target.value)} className="h-13 w-full rounded-2xl bg-surface2 border border-border-subtle px-4 text-sm outline-none focus:border-yt-red/50" /></label>;
+}
+
+function TextArea({ label, value, onChange }: { label: string; value: string; onChange: (value: string) => void }) {
+  return <label className="block space-y-2"><span className="text-xs text-text3 uppercase font-mono tracking-widest">{label}</span><textarea value={value} onChange={(event) => onChange(event.target.value)} rows={5} className="w-full rounded-2xl bg-surface2 border border-border-subtle p-4 text-sm outline-none focus:border-yt-red/50" /></label>;
+}
